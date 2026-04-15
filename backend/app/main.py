@@ -3,6 +3,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from .api import router as core_router
 from .ai_api import router as ai_router
+import os
+import logging
 
 app = FastAPI(
     title="DoE Platform API",
@@ -10,8 +12,7 @@ app = FastAPI(
     version="0.2.0"
 )
 
-import os
-import logging
+
 
 # CORS configuration
 CORS_ORIGINS = os.getenv("CORS_ORIGINS", "http://localhost:3000").split(",")

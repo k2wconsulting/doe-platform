@@ -9,6 +9,12 @@ from . import schemas
 from . import models
 from .database import get_db
 
+from .services.problem_classifier import classify_problem
+from .services.constraint_auditor import audit_constraints
+from .services.design_recommender import recommend_design
+from .services.experiment_summary import summarize_results
+from .services.next_steps import generate_next_steps
+
 router = APIRouter()
 
 # --- Projects ---
@@ -38,9 +44,12 @@ def update_project(project_id: int, project: dict, db: Session = Depends(get_db)
     if db_project is None:
         raise HTTPException(status_code=404, detail="Project not found")
     
-    if "name" in project: db_project.name = project["name"]
-    if "description" in project: db_project.description = project["description"]
-    if "status" in project: db_project.status = project["status"]
+    if "name" in project:
+        db_project.name = project["name"]
+    if "description" in project:
+        db_project.description = project["description"]
+    if "status" in project:
+        db_project.status = project["status"]
         
     db.commit()
     db.refresh(db_project)
@@ -111,8 +120,10 @@ def update_thread(thread_id: int, payload: dict, db: Session = Depends(get_db)):
     if not db_thread:
         raise HTTPException(status_code=404, detail="Thread not found")
         
-    if "name" in payload: db_thread.name = payload["name"]
-    if "status" in payload: db_thread.status = payload["status"]
+    if "name" in payload:
+        db_thread.name = payload["name"]
+    if "status" in payload:
+        db_thread.status = payload["status"]
         
     db.commit()
     db.refresh(db_thread)
@@ -457,12 +468,6 @@ def get_document(doc_id: int):
 
 # --- Domain Services ---
 
-from .services.problem_classifier import classify_problem
-from .services.constraint_auditor import audit_constraints
-from .services.design_recommender import recommend_design
-from .services.experiment_summary import summarize_results
-from .services.next_steps import generate_next_steps
-
 @router.post("/projects/{project_id}/classify-problem")
 def api_classify_problem(project_id: int, db: Session = Depends(get_db)):
     db_project = db.query(models.Project).filter(models.Project.id == project_id).first()
@@ -540,61 +545,61 @@ def reset_uat_data(
         # 1. Results and Runs
         db.query(models.ExperimentResult).filter(
             models.ExperimentResult.run_id.in_(
-                db.query(models.ExperimentRun.id).join(models.ExperimentPlan).filter(models.ExperimentPlan.is_seed == False)
+                db.query(models.ExperimentRun.id).join(models.ExperimentPlan).filter(~models.ExperimentPlan.is_seed)
             )
         ).delete(synchronize_session=False)
         
         db.query(models.ExperimentRun).filter(
             models.ExperimentRun.plan_id.in_(
-                db.query(models.ExperimentPlan.id).filter(models.ExperimentPlan.is_seed == False)
+                db.query(models.ExperimentPlan.id).filter(~models.ExperimentPlan.is_seed)
             )
         ).delete(synchronize_session=False)
 
         # 2. Plans and Definitions
         db.query(models.ResponseDefinition).filter(
             models.ResponseDefinition.plan_id.in_(
-                db.query(models.ExperimentPlan.id).filter(models.ExperimentPlan.is_seed == False)
+                db.query(models.ExperimentPlan.id).filter(~models.ExperimentPlan.is_seed)
             )
         ).delete(synchronize_session=False)
         
-        db.query(models.ExperimentPlan).filter(models.ExperimentPlan.is_seed == False).delete(synchronize_session=False)
+        db.query(models.ExperimentPlan).filter(~models.ExperimentPlan.is_seed).delete(synchronize_session=False)
 
         # 3. Formulations
         db.query(models.ProcedureBlock).filter(
             models.ProcedureBlock.formulation_id.in_(
-                db.query(models.FormulationVersion.id).filter(models.FormulationVersion.is_seed == False)
+                db.query(models.FormulationVersion.id).filter(~models.FormulationVersion.is_seed)
             )
         ).delete(synchronize_session=False)
         
         db.query(models.FormulationItem).filter(
             models.FormulationItem.formulation_id.in_(
-                db.query(models.FormulationVersion.id).filter(models.FormulationVersion.is_seed == False)
+                db.query(models.FormulationVersion.id).filter(~models.FormulationVersion.is_seed)
             )
         ).delete(synchronize_session=False)
         
-        db.query(models.FormulationVersion).filter(models.FormulationVersion.is_seed == False).delete(synchronize_session=False)
+        db.query(models.FormulationVersion).filter(~models.FormulationVersion.is_seed).delete(synchronize_session=False)
 
         # 4. Threads and Merges
         db.query(models.ThreadMergeEvent).delete(synchronize_session=False) # All merges are considered non-seed for now
-        db.query(models.ProjectThread).filter(models.ProjectThread.is_seed == False).delete(synchronize_session=False)
+        db.query(models.ProjectThread).filter(~models.ProjectThread.is_seed).delete(synchronize_session=False)
 
         # 5. Intake and Projects
         db.query(models.ProjectObjective).filter(
             models.ProjectObjective.project_id.in_(
-                db.query(models.Project.id).filter(models.Project.is_seed == False)
+                db.query(models.Project.id).filter(~models.Project.is_seed)
             )
         ).delete(synchronize_session=False)
         
         db.query(models.ProjectConstraint).filter(
             models.ProjectConstraint.project_id.in_(
-                db.query(models.Project.id).filter(models.Project.is_seed == False)
+                db.query(models.Project.id).filter(~models.Project.is_seed)
             )
         ).delete(synchronize_session=False)
         
-        db.query(models.Project).filter(models.Project.is_seed == False).delete(synchronize_session=False)
+        db.query(models.Project).filter(~models.Project.is_seed).delete(synchronize_session=False)
         
         # 6. Raw Materials (Optional: Reset non-seed materials)
-        db.query(models.RawMaterial).filter(models.RawMaterial.is_seed == False).delete(synchronize_session=False)
+        db.query(models.RawMaterial).filter(~models.RawMaterial.is_seed).delete(synchronize_session=False)
 
         db.commit()
         logging.info("--- DATABASE RESET SUCCESSFUL ---")

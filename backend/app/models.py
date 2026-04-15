@@ -1,6 +1,8 @@
 from sqlalchemy import Column, Integer, String, Boolean, Text, DateTime
 from sqlalchemy.sql import func
 from .database import Base
+from sqlalchemy import Numeric
+from sqlalchemy.dialects.postgresql import JSONB
 
 class Project(Base):
     __tablename__ = "projects"
@@ -16,7 +18,7 @@ class Project(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
     is_seed = Column(Boolean, default=False)
-from sqlalchemy import Numeric
+
 
 class ProjectObjective(Base):
     __tablename__ = "project_objectives"
@@ -46,7 +48,7 @@ class ProjectThread(Base):
     status = Column(String(50), default='active')
     is_seed = Column(Boolean, default=False)
 
-from sqlalchemy.dialects.postgresql import JSONB
+
 
 class FormulationVersion(Base):
     __tablename__ = "formulation_versions"

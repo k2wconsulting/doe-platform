@@ -21,6 +21,7 @@ export interface FormulationVersion {
   version_number: number;
   name: string;
   status: string;
+  parent_version_id?: number | null;
   items: FormulationItem[];
   procedures: ProcedureBlock[];
 }

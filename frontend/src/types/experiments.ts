@@ -22,6 +22,7 @@ export interface ExperimentRun {
 export interface ExperimentPlan {
   id: number;
   name: string;
+  status: string;
   design_type: string;
   responses: ResponseDefinition[];
   runs: ExperimentRun[];
